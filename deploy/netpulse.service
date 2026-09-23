@@ -1,0 +1,17 @@
+[Unit]
+Description=NetPulse Pro network dashboard
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/opt/netpulse-pro
+EnvironmentFile=-/opt/netpulse-pro/.env
+ExecStart=/opt/netpulse-pro/.venv/bin/python /opt/netpulse-pro/app.py
+Restart=on-failure
+RestartSec=5
+LimitNOFILE=65536
+
+[Install]
+WantedBy=multi-user.target

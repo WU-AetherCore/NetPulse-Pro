@@ -1,0 +1,16 @@
+interface=wlan0
+driver=nl80211
+ssid=OrangePiZero2-AP
+hw_mode=g
+channel=6
+ieee80211n=0
+wmm_enabled=0
+auth_algs=1
+wpa=2
+wpa_key_mgmt=WPA-PSK
+rsn_pairwise=CCMP
+wpa_passphrase=REPLACE_WITH_YOUR_OWN_PASSWORD
+ieee80211w=0
+ctrl_interface=/run/hostapd
+logger_syslog=-1
+logger_syslog_level=2
