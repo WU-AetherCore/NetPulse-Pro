@@ -19,6 +19,8 @@ NETPULSE_ADGUARD_WEB_SCHEME=http
 
 Chart.js 4.4.0 随静态文件部署，不依赖页面打开时访问外部 CDN。升级时需要同时复制 `static/`、`templates/`、`integrations.py` 和 `network_health.py`。`install.sh` 已包含这些文件。
 
+测速会按当前默认路由自动选择互联网出口（当前为 USB 无线网卡），下载和上传结果使用各自的实际测试流量；上传测试失败时显示未完成，不再用下载速度的比例伪造结果。网口 1000 Mbps 是本地协商速率，不等于上游 Wi-Fi 或宽带测速结果。
+
 ## 验证
 
 开发板实机验证了八个页面的加载、设备搜索、排行零流量筛选、DNS 查询筛选、连接记录分页与筛选、SSID/千兆全双工显示，以及 `/adguard` 跳转和完整 AdGuard 仪表盘。只读验证不执行封禁、限速或网络切换。

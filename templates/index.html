@@ -2745,7 +2745,8 @@
                     document.getElementById('pingValue').textContent = data.ping;
                     document.getElementById('serverValue').textContent = data.server || '-';
                     document.getElementById('speedtestPing').style.display = 'block';
-                    status.innerHTML = '<span style="color:#4caf50;">✅ 测速完成！峰值 下载:' + maxDownload.toFixed(1) + ' 上传:' + maxUpload.toFixed(1) + ' Mbps</span>';
+                    const uploadNote = data.upload > 0 ? ('上传 ' + data.upload.toFixed(1) + ' Mbps') : '上传未完成（未估算）';
+                    status.innerHTML = '<span style="color:#4caf50;">✅ 测速完成！下载 ' + data.download.toFixed(1) + ' Mbps · ' + uploadNote + '</span>';
                 } else {
                     status.innerHTML = '<span style="color:#f44336;">❌ 测速失败：' + (data.error || '未知错误') + '</span>';
                 }

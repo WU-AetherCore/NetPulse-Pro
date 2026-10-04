@@ -955,19 +955,40 @@ def _monitor_global_interface_speed():
             time.sleep(3)
 
 
-def _monitor_interface_speed():
-    """监控eth0接口的实时速率（测速时使用）"""
+def _speedtest_uplink():
+    """Return the interface carrying the current default route."""
+    import json
+    import subprocess
+    try:
+        result = subprocess.run(['ip', '-j', '-4', 'route', 'show', 'default'],
+                                capture_output=True, text=True, timeout=3, check=True)
+        routes = json.loads(result.stdout or '[]')
+        routes = [r for r in routes if r.get('dev') not in ('eth0', 'wlan0', 'lo', 'tailscale0')]
+        if routes:
+            return min(routes, key=lambda r: r.get('metric', 0)).get('dev', '')
+    except Exception:
+        pass
+    return ''
+
+
+def _monitor_interface_speed(interface=''):
+    """Monitor the current Internet egress interface during the speed test."""
     import time
     global speedtest_realtime
     last_rx = 0
     last_tx = 0
     last_time = time.time()
 
-    # 读取初始值
+    interface = interface or _speedtest_uplink()
+    if not interface:
+        print('[Speedtest Monitor] 未找到默认路由出口')
+        return
+
+    # Read initial counters from the actual Internet egress, not the LAN port.
     try:
         with open('/proc/net/dev', 'r') as f:
             for line in f:
-                if 'eth0:' in line:
+                if f'{interface}:' in line:
                     parts = line.split()
                     last_rx = int(parts[1])
                     last_tx = int(parts[9])
@@ -984,7 +1005,7 @@ def _monitor_interface_speed():
             current_tx = 0
             with open('/proc/net/dev', 'r') as f:
                 for line in f:
-                    if 'eth0:' in line:
+                    if f'{interface}:' in line:
                         parts = line.split()
                         current_rx = int(parts[1])
                         current_tx = int(parts[9])
@@ -1087,7 +1108,8 @@ def api_speedtest_start():
         speedtest_realtime['running'] = True
         speedtest_realtime['upload'] = 0
         speedtest_realtime['download'] = 0
-        speedtest_monitor_thread = threading.Thread(target=_monitor_interface_speed, daemon=True)
+        uplink = _speedtest_uplink()
+        speedtest_monitor_thread = threading.Thread(target=_monitor_interface_speed, args=(uplink,), daemon=True)
         speedtest_monitor_thread.start()
 
         # 1. 测试下载速度（国内源）
@@ -1096,7 +1118,7 @@ def api_speedtest_start():
         # 2. 测试延迟（国内服务器）
         ping = _test_ping_cn()
 
-        # 3. 上传速度用speedtest-cli（加超时保护，国内没有好的上传测试源）
+        # 3. Upload uses the same speedtest service; never invent a percentage of download.
         ul = 0
         srv = '国内镜像站 - ' + used_url.split('/')[2] if used_url else '国内镜像站'
         try:
@@ -1113,11 +1135,8 @@ def api_speedtest_start():
             upload_thread.start()
             upload_thread.join(timeout=15)  # 最多等15秒
             ul = upload_result[0]
-            if ul <= 0:
-                ul = dl * 0.3  # 超时则估算上传为下载的30%
         except Exception as e:
             print(f"[Speedtest] 上传测试失败: {e}")
-            ul = dl * 0.3  # 估算上传为下载的30%
 
         # 停止监控
         speedtest_realtime['running'] = False
@@ -1129,7 +1148,9 @@ def api_speedtest_start():
             'upload': round(ul, 2),
             'ping': round(ping, 1),
             'server': srv,
-            'note': '下载速度使用国内镜像站测试，更准确'
+            'interface': uplink,
+            'note': ('下载使用国内镜像站；上传使用 speedtest 服务，未完成时显示 0，'
+                     '不会用下载速度估算上传速度')
         })
     except Exception as e:
         speedtest_realtime['running'] = False
