@@ -9,7 +9,7 @@
 <section class="network-card">
 <div class="network-title"><h3><span class="network-icon">↗</span>USB 无线上网</h3><span id="networkUsbBadge" class="network-tag">读取中</span></div>
 <div class="network-note">选择连接主 Wi‑Fi 的无线网卡。板载无线正在提供热点，不参与上网切换。</div>
-<div class="network-details"><div><small>当前连接</small><strong id="networkSsid">—</strong></div><div><small>上游 IP 地址</small><strong id="networkUsbIp">—</strong></div><div><small>默认网关</small><strong id="networkGateway">—</strong></div><div><small>网卡接口</small><strong id="networkUsbName">—</strong></div></div>
+<div class="network-details"><div><small>Wi-Fi 名称</small><strong id="networkSsid">—</strong></div><div><small>上游 IP 地址</small><strong id="networkUsbIp">—</strong></div><div><small>默认网关</small><strong id="networkGateway">—</strong></div><div><small>网卡接口</small><strong id="networkUsbName">—</strong></div></div>
 <label class="network-field">上网无线网卡<select id="networkAdapter"></select></label>
 <button class="btn btn-primary" id="networkScan" onclick="scanNetworkSettings(this)">⌕ 扫描附近 Wi‑Fi</button>
 <div id="networkChoices" class="network-list"><div class="network-note">点击扫描查找网络，也可以在下方手动填写名称。</div></div>
@@ -18,7 +18,7 @@
 <label class="network-note"><input type="checkbox" onchange="document.getElementById('networkConnectPassword').type=this.checked?'text':'password'"> 显示密码</label>
 <div class="network-actions"><button class="btn btn-primary" onclick="connectNetworkSettings(this)">连接并保存</button><span class="network-note">切换网络时互联网连接会短暂中断</span></div>
 </section>
-<section class="network-card"><div class="network-title"><h3><span class="network-icon">⇄</span>有线网络</h3><span id="networkEthernetBadge" class="network-tag">读取中</span></div><div class="network-details"><div><small>接口</small><strong>eth0</strong></div><div><small>开发板网关地址</small><strong id="networkEthernetIp">—</strong></div></div><p class="network-note" style="margin-top:16px">网线连接小米路由器或其他下游设备。小米处于路由模式时，流量显示为路由器及其下挂设备的合计。</p></section>
+<section class="network-card"><div class="network-title"><h3><span class="network-icon">⇄</span>有线网络</h3><span id="networkEthernetBadge" class="network-tag">读取中</span></div><div class="network-details"><div><small>接口</small><strong>eth0</strong></div><div><small>开发板网关地址</small><strong id="networkEthernetIp">—</strong></div><div><small>协商链路</small><strong id="networkLinkSpeed">—</strong></div></div><p class="network-note" style="margin-top:16px">网线连接小米路由器或其他下游设备。小米处于路由模式时，流量显示为路由器及其下挂设备的合计。</p></section>
 </div>
 <div>
 <section class="network-card"><div class="network-title"><h3><span class="network-icon">◉</span>板载 Wi‑Fi 热点</h3><span id="networkApBadge" class="network-tag">读取中</span></div><div class="network-note">手机连接这个热点后，通过开发板上网并独立统计流量。</div>

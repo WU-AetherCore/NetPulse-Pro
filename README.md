@@ -6,7 +6,7 @@
 
 面向 Orange Pi Zero 2 的轻量级网络管理面板：USB Wi‑Fi 上网、板载 Wi‑Fi 热点、有线下游、设备流量统计。
 
-![Version](https://img.shields.io/badge/version-3.0.0-7563d8)
+![Version](https://img.shields.io/badge/version-3.1.0-7563d8)
 ![Python](https://img.shields.io/badge/Python-3.10%2B-3776AB?logo=python&logoColor=white)
 ![Flask](https://img.shields.io/badge/Flask-3.x-25233d?logo=flask)
 ![Platform](https://img.shields.io/badge/platform-Orange_Pi_Zero_2-orange)
@@ -14,6 +14,8 @@
 [![Tests](https://github.com/WU-AetherCore/NetPulse-Pro/actions/workflows/tests.yml/badge.svg)](https://github.com/WU-AetherCore/NetPulse-Pro/actions/workflows/tests.yml)
 
 [部署教程](docs/DEPLOYMENT.md) · [使用说明 / Web 介绍](docs/USER_GUIDE.md) · [常见问题](docs/TROUBLESHOOTING.md) · [API](docs/API.md) · [更新记录](CHANGELOG.md)
+
+[界面更新与 AdGuard 入口](docs/WEB_UI.md) · [自动恢复](docs/AUTO_RECOVERY.md)
 
 </div>
 

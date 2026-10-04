@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>NetPulse-Pro - 网络设备管理系统</title>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <script src="{{ url_for('static', filename='vendor/chart.umd.min.js') }}"></script>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
@@ -870,7 +870,7 @@
         <div class="header-right">
             <span class="status-badge" id="systemStatus">● 运行中</span>
             <span id="currentTime" style="font-size:13px;color:#888;"></span>
-            <button class="btn btn-primary" onclick="scanNow()">🔄 立即扫描</button>
+            <button class="btn btn-primary" onclick="scanNow(this)">🔄 立即扫描</button>
         </div>
     </div>
 
@@ -1091,8 +1091,8 @@
                     <div style="display:flex;gap:8px;align-items:center;">
                         <div class="tab-sub" style="margin:0;">
                             <button class="tab-sub-btn active" onclick="switchRankingPeriod(this,1)">今天</button>
-                            <button class="tab-sub-btn" onclick="switchRankingPeriod(this,7)">本周</button>
-                            <button class="tab-sub-btn" onclick="switchRankingPeriod(this,30)">本月</button>
+                            <button class="tab-sub-btn" onclick="switchRankingPeriod(this,7)">近7天</button>
+                            <button class="tab-sub-btn" onclick="switchRankingPeriod(this,30)">近30天</button>
                         </div>
                         <div class="custom-select" id="rankingSort">
                             <div class="custom-select-trigger" onclick="toggleCustomSelect('rankingSort')">总流量</div>
@@ -1128,11 +1128,9 @@
                 <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:15px;">
                     <div>
                         <h2 style="font-size:18px;color:#68b84a;">🛡️ AdGuard Home 广告过滤</h2>
-                        <p style="font-size:12px;color:#888;margin-top:4px;">DNS 级广告拦截 · 全屋设备自动过滤</p>
+                        <p style="font-size:12px;color:#888;margin-top:4px;">保护使用此 DNS 服务的设备 · 最近24小时统计</p>
                     </div>
-                    <a href="http://192.168.1.10:3000/" target="_blank" style="text-decoration:none;">
-                        <button class="btn btn-primary" style="background:linear-gradient(135deg,#68b84a,#4a9a30);">🔗 打开 AdGuard Home 完整界面</button>
-                    </a>
+                    <a href="/adguard" target="_blank" rel="noopener noreferrer" class="btn btn-primary np-adguard-link">打开 AdGuard Home 完整界面 ↗</a>
                 </div>
             </div>
 
@@ -1191,29 +1189,13 @@
         </div>
 
         <div id="tab-about" style="display:none;">
-            <div class="card">
-                <div class="card-title"><span>ℹ️ 关于 NetPulse</span></div>
-                <div style="line-height:2;">
-                    <p><strong>NetPulse-Pro 网脉</strong> - 轻量级网络设备管理系统</p>
-                    <p>📌 功能特性：</p>
-                    <ul style="margin-left:20px;">
-                        <li>✅ 自动发现局域网所有设备（ARP扫描 + Ping扫描）</li>
-                        <li>✅ 实时监控每台设备的上下行速率</li>
-                        <li>✅ 精确统计每台设备的流量使用（iptables内核级计数）</li>
-                        <li>✅ 按小时/天/周/月查看历史流量数据</li>
-                        <li>✅ 记录设备连接/断开事件</li>
-                        <li>✅ 设备命名与备注管理</li>
-                        <li>✅ MAC地址厂商自动识别</li>
-                        <li>✅ 🚫 设备封禁（踢出网络，ARP欺骗+iptables DROP）</li>
-                        <li>✅ ⏱️ 设备限速（tc HTB流量控制，可设上下行带宽）</li>
-                        <li>✅ 设备管理状态实时显示</li>
-                        <li>✅ 📊 周期流量统计（每月/每季度/每年/自定义，手动清零）</li>
-                    </ul>
-                    <p style="margin-top:15px;">🔧 技术栈：Python Flask + SQLite + iptables + tc + ARP欺骗 + Chart.js</p>
-                    <p>💾 数据存储：本地SQLite数据库，数据保留90天</p>
-                    <p style="margin-top:10px;color:#ff9800;">⚠️ 注意：设备封禁和限速功能通过ARP欺骗实现，需要设备与Orange Pi在同一局域网。封禁/限速可能对部分有ARP防护的设备无效。</p>
-                </div>
+            <div class="np-about-grid">
+              <section class="card"><div class="card-title">连接拓扑</div><p>主 Wi-Fi → USB 无线网卡 → Orange Pi → 有线网络 / 板载热点</p><p class="np-caption">有线下游和热点共用上游带宽。千兆网口是本地链路能力，实际互联网速度还受无线信号、主路由器和宽带影响。</p></section>
+              <section class="card"><div class="card-title">统计范围</div><p>实时速率与流量统计来自经过开发板的流量。没有经过开发板的设备可能在线，但流量为零。</p><p class="np-caption">下游路由器处于路由模式时，其子设备的流量会合并在路由器上。DNS 查询记录不是完整网页浏览历史。</p></section>
+              <section class="card"><div class="card-title">设备与带宽</div><p>设备列表支持命名、备注、封禁、限速和优先级。优先级在拥塞时分配带宽，空闲带宽可由其他优先级借用。</p><p class="np-caption">已设置的设备限速继续生效。设备离线、网络拓扑或防护机制可能影响管理效果。</p></section>
+              <section class="card"><div class="card-title">连接与恢复</div><p>已部署的恢复检查会确认上游连接和路由，连续故障后尝试恢复。USB 连接按网卡 MAC 识别，适配接口名称变化。</p><p class="np-caption">拔出网卡期间无法联网；重新插入仍需要驱动、已保存连接和主 Wi-Fi 可用。仪表盘展示最近检查状态。</p></section>
             </div>
+            <section class="card"><div class="card-title">NetPulse-Pro · 使用与部署</div><p>Python Flask · SQLite · NetworkManager · iptables · tc · Chart.js</p><div class="np-tools"><a class="btn" href="https://github.com/WU-AetherCore/NetPulse-Pro" target="_blank" rel="noopener noreferrer">GitHub 项目 ↗</a><a class="btn" href="https://github.com/WU-AetherCore/NetPulse-Pro/blob/main/docs/DEPLOYMENT.md" target="_blank" rel="noopener noreferrer">部署说明 ↗</a><a class="btn" href="https://github.com/WU-AetherCore/NetPulse-Pro/blob/main/docs/AUTO_RECOVERY.md" target="_blank" rel="noopener noreferrer">自动恢复说明 ↗</a></div></section>
         </div>
     </div>
 
@@ -2144,7 +2126,7 @@
         }
 
         // 流量排行
-        let rankingDays = 7;
+        let rankingDays = 1;
         async function loadRanking() {
             try {
                 const sort = getCustomSelectValue('rankingSort');
@@ -2227,8 +2209,7 @@
         }
 
         // 立即扫描
-        async function scanNow() {
-            const btn = event.target;
+        async function scanNow(btn) {
             btn.textContent = '扫描中...';
             btn.disabled = true;
             try {
@@ -2858,5 +2839,34 @@
 
         init();
     </script>
+<style id="netpulse-upgrade">
+#gatewayTip{display:none!important}body{background:#101426;color:#eef0ff}.header{background:#151a30;border-bottom:1px solid #313950}.container{max-width:1680px}.nav-tabs{background:#171e34}.nav-tab{white-space:nowrap}.stat-card,.chart-card,.speedtest-card{background:#1b233d!important;border-color:#36405c!important}.stat-label,.stat-subtitle,.logo-text p{color:#b8c1d9!important}.stat-value{font-variant-numeric:tabular-nums}.health-strip{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px;margin-bottom:20px}.health-cell{padding:18px 20px;border:1px solid #36405c;border-radius:14px;background:#1b233d}.health-cell small{display:block;color:#b8c1d9;margin-bottom:9px}.health-cell strong{font-size:18px;overflow-wrap:anywhere}.health-cell p{color:#b8c1d9;font-size:12px;line-height:1.6;margin-top:8px}.health-good{color:#7ce0ad}.health-warn{color:#ffcd77}button:focus-visible,a:focus-visible{outline:2px solid #a9b4ff;outline-offset:3px}@media(max-width:900px){.health-strip{grid-template-columns:repeat(2,minmax(0,1fr))}.header{flex-wrap:wrap;gap:12px}.container{padding:16px}}@media(max-width:500px){.health-strip{grid-template-columns:1fr}.header-right{gap:8px;flex-wrap:wrap}}
+</style>
+<script>
+document.addEventListener('DOMContentLoaded',()=>{
+ const dash=document.getElementById('tab-dashboard')||document.getElementById('dashboard');
+ const anchor=document.querySelector('.speedtest-card');
+ const strip=document.createElement('section');strip.className='health-strip';strip.setAttribute('aria-label','网络健康');
+ const fields=[['出口连接','healthUplink','healthWifi'],['有线链路','healthEthernet','healthEthernetDetail'],['自动恢复','healthRecovery','healthRecoveryDetail'],['流量统计范围','healthTopology','healthTopologyDetail']];
+ fields.forEach(([label,id,detail])=>{const cell=document.createElement('div');cell.className='health-cell';const small=document.createElement('small');small.textContent=label;const value=document.createElement('strong');value.id=id;value.textContent='正在读取…';const p=document.createElement('p');p.id=detail;cell.append(small,value,p);strip.append(cell);});
+ if(anchor)anchor.before(strip);else if(dash)dash.prepend(strip);
+ document.querySelectorAll('.nav-tab').forEach(b=>{if(b.textContent.includes('Wi-Fi'))b.textContent='📡 网络与热点';});
+ // The routed topology already counts forwarded traffic. Keep the experimental controls accessible in their original panel.
+ const hint=document.getElementById('trafficHint');if(hint)hint.style.display='none';
+ const text=(id,value)=>{document.getElementById(id).textContent=value;};
+ let busy=false;
+ async function refresh(){if(busy||document.hidden)return;busy=true;try{
+  const response=await fetch('/api/network/health',{signal:AbortSignal.timeout(8000)});if(!response.ok)throw new Error('状态读取失败');const h=await response.json();
+  text('healthUplink',h.wifi.SSID||h.uplink||'无上游连接');text('healthWifi',[h.uplink,h.wifi.freq?Number(h.wifi.freq)>=5000?'5 GHz':'2.4 GHz':'',h.wifi.signal].filter(Boolean).join(' · '));
+  text('healthEthernet',h.ethernet.carrier?h.ethernet.speed+' Mbps':'网线未连接');document.getElementById('healthEthernet').className=h.ethernet.carrier?'health-good':'health-warn';text('healthEthernetDetail',h.ethernet.duplex==='full'?'全双工 · 外网速度还受上游 Wi-Fi 限制':'请检查网线与对端设备');
+  const r=h.recovery;const fresh=r.checked_at&&h.recovery_age_seconds<150;const labels={healthy:'连接正常',missing:'等待网卡插入',wait:'检测中',reconnect:'正在重连',reapply:'正在恢复路由'};text('healthRecovery',fresh?(labels[r.action]||'检测中'):'恢复状态待确认');text('healthRecoveryDetail',fresh?'每 30 秒检查 · 保留有线管理入口':'未获得近期检查结果');
+  text('healthTopology','有线 + 板载热点');text('healthTopologyDetail','统计经过开发板的流量；同一上游 Wi-Fi 中其他设备不在统计范围内。');
+ }catch(e){text('healthRecovery','状态暂不可用');text('healthRecoveryDetail','请稍后刷新，或检查开发板服务。');}finally{busy=false;}}
+ refresh();setInterval(refresh,15000);document.addEventListener('visibilitychange',refresh);
+});
+</script>
+
+<link rel="stylesheet" href="{{ url_for('static', filename='ui.css') }}?v=20261004b">
+<script src="{{ url_for('static', filename='ui.js') }}?v=20261004b"></script>
 </body>
 </html>

@@ -243,18 +243,19 @@ def init_tc():
     run_sudo(f"tc qdisc del dev {LIMIT_IFACE} root 2>/dev/null")
     # 创建HTB根qdisc，默认走中优先级类
     run_sudo(f"tc qdisc add dev {LIMIT_IFACE} root handle {LIMIT_ROOT_HANDLE} htb default 20")
+    run_sudo(f"tc class add dev {LIMIT_IFACE} parent {LIMIT_ROOT_HANDLE} classid 1:1 htb rate 1000mbit ceil 1000mbit burst 512k cburst 512k")
     # 创建三个优先级类
     # 高优先级：保证50%带宽，prio 1（最高）
-    run_sudo(f"tc class add dev {LIMIT_IFACE} parent {LIMIT_ROOT_HANDLE} classid 1:10 htb rate 500mbit ceil 1000mbit burst 15k prio 1")
+    run_sudo(f"tc class add dev {LIMIT_IFACE} parent 1:1 classid 1:10 htb rate 500mbit ceil 1000mbit burst 512k cburst 512k prio 1")
     run_sudo(f"tc qdisc add dev {LIMIT_IFACE} parent 1:10 handle 100: sfq perturb 10 2>/dev/null")
     # 中优先级：保证30%带宽，prio 2（默认）
-    run_sudo(f"tc class add dev {LIMIT_IFACE} parent {LIMIT_ROOT_HANDLE} classid 1:20 htb rate 300mbit ceil 1000mbit burst 15k prio 2")
+    run_sudo(f"tc class add dev {LIMIT_IFACE} parent 1:1 classid 1:20 htb rate 300mbit ceil 1000mbit burst 512k cburst 512k prio 2")
     run_sudo(f"tc qdisc add dev {LIMIT_IFACE} parent 1:20 handle 200: sfq perturb 10 2>/dev/null")
     # 低优先级：保证20%带宽，prio 3（最低）
-    run_sudo(f"tc class add dev {LIMIT_IFACE} parent {LIMIT_ROOT_HANDLE} classid 1:30 htb rate 200mbit ceil 1000mbit burst 15k prio 3")
+    run_sudo(f"tc class add dev {LIMIT_IFACE} parent 1:1 classid 1:30 htb rate 200mbit ceil 1000mbit burst 512k cburst 512k prio 3")
     run_sudo(f"tc qdisc add dev {LIMIT_IFACE} parent 1:30 handle 300: sfq perturb 10 2>/dev/null")
     # 兼容旧的默认类
-    run_sudo(f"tc class add dev {LIMIT_IFACE} parent {LIMIT_ROOT_HANDLE} classid 1:999 htb rate 1000mbit ceil 1000mbit")
+    run_sudo(f"tc class add dev {LIMIT_IFACE} parent {LIMIT_ROOT_HANDLE} classid 1:999 htb rate 1000mbit ceil 1000mbit burst 512k cburst 512k")
     # 初始化 iptables mangle 链
     run_sudo("iptables -t mangle -F NETPULSE_QOS 2>/dev/null")
     run_sudo("iptables -t mangle -X NETPULSE_QOS 2>/dev/null")
@@ -1250,7 +1251,7 @@ def setup_stats_chain():
     v4_subnets = detect_lan_subnets()
     try:
         # 先从 FORWARD 摘除旧跳转，清空并删除旧链
-        run_sudo(f"iptables -D FORWARD -j {STATS_CHAIN_V4} 2>/dev/null")
+        run_sudo(f"while iptables -C FORWARD -j {STATS_CHAIN_V4} 2>/dev/null; do iptables -D FORWARD -j {STATS_CHAIN_V4} || break; done")
         run_sudo(f"iptables -F {STATS_CHAIN_V4} 2>/dev/null")
         run_sudo(f"iptables -X {STATS_CHAIN_V4} 2>/dev/null")
         time.sleep(0.2)
@@ -1271,7 +1272,7 @@ def setup_stats_chain():
     # ---------- IPv6 ----------
     v6_prefixes = detect_ipv6_prefixes()
     try:
-        run_sudo(f"ip6tables -D FORWARD -j {STATS_CHAIN_V6} 2>/dev/null")
+        run_sudo(f"while ip6tables -C FORWARD -j {STATS_CHAIN_V6} 2>/dev/null; do ip6tables -D FORWARD -j {STATS_CHAIN_V6} || break; done")
         run_sudo(f"ip6tables -F {STATS_CHAIN_V6} 2>/dev/null")
         run_sudo(f"ip6tables -X {STATS_CHAIN_V6} 2>/dev/null")
         time.sleep(0.2)

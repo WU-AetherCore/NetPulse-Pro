@@ -42,6 +42,10 @@ app = Flask(__name__)
 app.config['JSON_AS_ASCII'] = False
 from network_settings import network_settings
 app.register_blueprint(network_settings)
+from network_health import network_health
+app.register_blueprint(network_health)
+from integrations import integrations
+app.register_blueprint(integrations)
 
 
 @app.route('/api/wifi/status')

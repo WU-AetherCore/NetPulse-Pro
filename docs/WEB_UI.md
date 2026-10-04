@@ -1,0 +1,24 @@
+# Web 界面与 AdGuard Home
+
+八个页面统一深色主题、信息层级与响应式布局。设备表格支持横向滚动；排行默认显示有流量的设备，可显示零流量设备；连接记录支持 IP/MAC 搜索、事件类型筛选和每页 50 条分页。DNS 查询在已加载记录中即时筛选，展开设备可查看域名排行与最近查询。
+
+排行使用自然日汇总：今天从零点开始，近 7 天和近 30 天包含今天。DNS 数据最多加载 5000 条，界面显示的是已加载查询，不能代表完整网页浏览历史。网络页显示实际 SSID 与有线协商速率，千兆链路不代表千兆互联网速度。
+
+## AdGuard Home 入口
+
+`/adguard` 根据访问 NetPulse 时的主机名跳转到同一主机的 3000 端口，避免固定 IP 在网段变化后失效。IPv6 地址也支持。
+
+可在服务环境中覆盖以下配置，然后重启 NetPulse：
+
+```ini
+NETPULSE_ADGUARD_WEB_PORT=3000
+NETPULSE_ADGUARD_WEB_SCHEME=http
+# 反向代理或独立主机可设置完整地址，优先于上述配置：
+# NETPULSE_ADGUARD_WEB_URL=https://dns.example.com/
+```
+
+Chart.js 4.4.0 随静态文件部署，不依赖页面打开时访问外部 CDN。升级时需要同时复制 `static/`、`templates/`、`integrations.py` 和 `network_health.py`。`install.sh` 已包含这些文件。
+
+## 验证
+
+开发板实机验证了八个页面的加载、设备搜索、排行零流量筛选、DNS 查询筛选、连接记录分页与筛选、SSID/千兆全双工显示，以及 `/adguard` 跳转和完整 AdGuard 仪表盘。只读验证不执行封禁、限速或网络切换。

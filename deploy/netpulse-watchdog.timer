@@ -1,0 +1,10 @@
+[Unit]
+Description=Check NetPulse network every 30 seconds
+
+[Timer]
+OnBootSec=90
+OnUnitInactiveSec=30
+Unit=netpulse-watchdog.service
+
+[Install]
+WantedBy=timers.target

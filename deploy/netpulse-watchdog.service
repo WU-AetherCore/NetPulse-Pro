@@ -1,0 +1,9 @@
+[Unit]
+Description=NetPulse conservative network recovery
+After=NetworkManager.service
+
+[Service]
+Type=oneshot
+EnvironmentFile=/etc/default/netpulse-router
+ExecStart=/usr/bin/python3 /opt/netpulse-pro/network_watchdog.py
+TimeoutStartSec=150

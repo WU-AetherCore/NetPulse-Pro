@@ -9,7 +9,7 @@ target=/opt/netpulse-pro
 python3 -c 'import sys; assert sys.version_info >= (3,10), "需要 Python 3.10+"'
 apt-get update
 apt-get install -y python3-venv python3-pip iptables iproute2 sudo curl iputils-ping
-install -d "$target/templates"
+install -d "$target/templates" "$target/static"
 if [[ "$source_dir" != "$target" ]]; then
     if [[ -f "$target/app.py" ]]; then
         backup="/opt/netpulse-pro-backup-$(date +%Y%m%d-%H%M%S)"
@@ -18,6 +18,7 @@ if [[ "$source_dir" != "$target" ]]; then
     fi
     cp "$source_dir"/*.py "$target/"
     cp "$source_dir"/templates/*.html "$target/templates/"
+    cp -a "$source_dir/static/." "$target/static/"
     cp "$source_dir/requirements.txt" "$target/"
 fi
 if [[ ! -f "$target/.env" ]]; then
