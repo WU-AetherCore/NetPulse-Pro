@@ -1027,8 +1027,8 @@
             </div>
             <div class="card collapsible-card" id="trafficTrendCard">
                 <div class="card-title" onclick="toggleCard('trafficTrendCard')">
-                    <span>📈 实时流量趋势</span>
-                    <span style="font-size:12px;color:#888;">最近 60 个采样点</span>
+                    <div class="traffic-title-main"><span>📈 实时流量趋势</span><span class="traffic-live-badge">● 实时</span></div>
+                    <div class="traffic-title-meta"><span class="traffic-live-rate traffic-live-upload">↑ <strong id="trafficLiveUpload">0 KB/s</strong></span><span class="traffic-live-rate traffic-live-download">↓ <strong id="trafficLiveDownload">0 KB/s</strong></span><span class="traffic-samples">最近 60 个采样点</span></div>
                 </div>
                 <div class="card-body">
                     <div class="chart-container"><canvas id="trafficChart"></canvas></div>
@@ -1560,6 +1560,10 @@
                 // 保存接口级别的真实总速率，用于流量曲线图
                 globalRateFromSummary.upload = data.avg_upload_rate || 0;
                 globalRateFromSummary.download = data.avg_download_rate || 0;
+                const liveUpload = document.getElementById('trafficLiveUpload');
+                const liveDownload = document.getElementById('trafficLiveDownload');
+                if (liveUpload) liveUpload.textContent = data.formatted.avg_upload_rate || formatRate(globalRateFromSummary.upload);
+                if (liveDownload) liveDownload.textContent = data.formatted.avg_download_rate || formatRate(globalRateFromSummary.download);
 
                 // 计算管理设备统计
                 const blockedCount = allDevices ? allDevices.filter(d => d.is_blocked === 1).length : 0;
