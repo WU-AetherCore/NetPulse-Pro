@@ -4,7 +4,7 @@ from pathlib import Path
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 DB_PATH = os.environ.get('NETPULSE_DB_PATH', os.path.join(BASE_DIR, 'netpulse.db'))
 LOG_PATH = os.path.join(BASE_DIR, 'netpulse.log')
-WEB_HOST = os.environ.get('NETPULSE_WEB_HOST', '127.0.0.1')
+WEB_HOST = os.environ.get('NETPULSE_WEB_HOST', '0.0.0.0')
 WEB_PORT = int(os.environ.get('NETPULSE_WEB_PORT', '8081'))
 SCAN_INTERVAL = 30
 TRAFFIC_INTERVAL = 3

@@ -34,7 +34,7 @@ sudo bash install.sh
 
 ## 3. USB 无线连接上游
 
-用实际接口名替换 `wlan1`，SSID 替换为你自己的主 Wi‑Fi 名称。`--ask` 会交互询问密码，不把密码写入本教程或命令历史。
+用实际接口名替换 `wlan1`，SSID 替换为你自己的主 Wi‑Fi 名称。`--ask` 会交互询问密码，不把密码写入本教程或命令历史。USB 网卡常被 udev 改名为 `wlx` 开头的 MAC 派生名称，用 `nmcli device status` 确认实际名字。
 
 ```bash
 nmcli device status
@@ -45,11 +45,15 @@ ip route
 编辑 `/opt/netpulse-pro/.env`：
 
 ```ini
-NETPULSE_WEB_HOST=127.0.0.1
+# 默认值就是 0.0.0.0：仪表盘在有线下游和热点上都能直接访问。
+NETPULSE_WEB_HOST=0.0.0.0
 NETPULSE_WEB_PORT=8081
-NETPULSE_UPLINK=wlan1
+# 留空即自动识别 USB 无线网卡（wlx* 或 wlan1），无需手填接口名。
+NETPULSE_UPLINK=
 NETPULSE_GATEWAY=192.168.1.1
 ```
+
+`NETPULSE_UPLINK` 留空时按此顺序识别上行：该变量指定的接口 → 承载默认路由的无线接口 → 其它已连接的无线接口。板载 `wlan0` 永远不会被当作上行。只有需要强制指定时才填写接口名。
 
 上游默认使用 DHCP。连接不同 Wi‑Fi 时，固定 `192.168.1.x` 并不能保证可用；不要把上游和任一下游改为同一网段。上游连接名与 SSID 可能不同，以 `nmcli connection show` 为准。
 
@@ -138,13 +142,13 @@ sudo systemctl enable --now netpulse-router
 
 ## 8. 访问 Web
 
-默认使用 SSH 隧道访问本机监听端口。若仅在可信内网直接访问，可以把 `.env` 中 `NETPULSE_WEB_HOST` 改为 `0.0.0.0`，重启服务，并在防火墙限制 8081 只允许管理设备访问。该版本没有内置完整登录，不要开放公网端口映射。
+默认监听 `0.0.0.0`，因此有线下游和热点都能直接打开仪表盘。**该版本没有内置完整登录**，务必用防火墙把 8081 限制为只允许管理设备访问，且不要做公网端口映射。若要改为只允许本机访问（例如只走 SSH 隧道），把 `.env` 中 `NETPULSE_WEB_HOST` 设为 `127.0.0.1` 后重启服务。
 
 ```bash
 sudo systemctl restart netpulse
 ```
 
-手机连接热点后访问 `http://192.168.112.1:8081`；有线下游访问 `http://192.168.111.1:8081`。这要求已选择内网监听方式。
+手机连接热点后访问 `http://192.168.112.1:8081`；有线下游访问 `http://192.168.111.1:8081`。
 
 ## 9. 验收
 
