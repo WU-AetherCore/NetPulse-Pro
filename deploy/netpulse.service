@@ -8,6 +8,11 @@ Type=simple
 User=root
 WorkingDirectory=/opt/netpulse-pro
 EnvironmentFile=-/opt/netpulse-pro/.env
+Environment=PYTHONPYCACHEPREFIX=/run/netpulse-pycache
+RuntimeDirectory=netpulse-pycache
+RuntimeDirectoryMode=0700
+RuntimeDirectoryPreserve=restart
+TimeoutStopSec=30
 ExecStart=/opt/netpulse-pro/.venv/bin/python /opt/netpulse-pro/app.py
 Restart=on-failure
 RestartSec=5

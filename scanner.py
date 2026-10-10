@@ -182,13 +182,18 @@ class Scanner(threading.Thread):
         super().__init__(daemon=True)
         self.interval = interval
         self.running = True
+        self.last_report = 0
+        self.last_count = None
 
     def run(self):
         print(f"[Scanner] 设备扫描线程启动，间隔{self.interval}秒")
         while self.running:
             try:
                 devices = scan_devices()
-                print(f"[Scanner] 扫描完成，发现{len(devices)}台设备")
+                now = time.monotonic()
+                if len(devices) != self.last_count or now - self.last_report >= 60:
+                    print(f"[Scanner] 扫描完成，发现{len(devices)}台设备")
+                    self.last_count, self.last_report = len(devices), now
             except Exception as e:
                 print(f"[Scanner] 扫描异常: {e}")
             time.sleep(self.interval)

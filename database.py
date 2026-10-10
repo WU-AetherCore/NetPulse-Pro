@@ -6,6 +6,9 @@ import sqlite3
 import time
 from datetime import datetime, timedelta
 from config import DB_PATH, HOURLY_RETENTION_DAYS, DAILY_RETENTION_DAYS
+from traffic_cache import TrafficCache
+
+traffic_cache = TrafficCache()
 
 
 def get_db():
@@ -163,10 +166,15 @@ def upsert_device(mac, ip, vendor=None, name=None):
     c = conn.cursor()
     now = int(time.time())
 
-    c.execute("SELECT id, first_seen, connection_count FROM devices WHERE mac=?", (mac,))
+    c.execute("SELECT * FROM devices WHERE mac=?", (mac,))
     row = c.fetchone()
 
     if row:
+        metadata_changed = ((vendor and not row['vendor']) or (name and not row['name']))
+        if (row['is_online'] and row['ip'] == ip and not metadata_changed
+                and now - (row['last_seen'] or 0) < 30):
+            conn.close()
+            return
         c.execute("""
             UPDATE devices SET ip=?, last_seen=?, is_online=1
             WHERE mac=?
@@ -221,54 +229,34 @@ def record_connection_event(mac, ip, event_type, details=""):
 
 
 def update_traffic(mac, upload_delta, download_delta):
-    """更新流量统计"""
-    if upload_delta <= 0 and download_delta <= 0:
-        return
+    """Accumulate traffic without writing the card on every sample."""
+    traffic_cache.add(mac, upload_delta, download_delta)
 
-    conn = get_db()
-    c = conn.cursor()
-    now = datetime.now()
-    hour_str = now.strftime("%Y-%m-%d %H:00:00")
-    date_str = now.strftime("%Y-%m-%d")
 
-    # 更新设备总流量
-    c.execute("""
-        UPDATE devices SET total_upload=total_upload+?, total_download=total_download+?
-        WHERE mac=?
-    """, (upload_delta, download_delta, mac))
-
-    # 更新小时流量
-    c.execute("""
-        INSERT INTO traffic_hourly (device_mac, hour, upload, download)
-        VALUES (?, ?, ?, ?)
-        ON CONFLICT(device_mac, hour) DO UPDATE SET
-            upload=upload+excluded.upload,
-            download=download+excluded.download
-    """, (mac, hour_str, upload_delta, download_delta))
-
-    # 更新天流量
-    c.execute("""
-        INSERT INTO traffic_daily (device_mac, date, upload, download)
-        VALUES (?, ?, ?, ?)
-        ON CONFLICT(device_mac, date) DO UPDATE SET
-            upload=upload+excluded.upload,
-            download=download+excluded.download
-    """, (mac, date_str, upload_delta, download_delta))
-
-    conn.commit()
-    conn.close()
+def flush_traffic():
+    def write(rows):
+        conn = get_db()
+        try:
+            with conn:
+                conn.executemany('UPDATE devices SET total_upload=total_upload+?, total_download=total_download+? WHERE mac=?',
+                                 [(up, down, mac) for mac, hour, date, up, down in rows])
+                conn.executemany('''INSERT INTO traffic_hourly (device_mac,hour,upload,download) VALUES (?,?,?,?)
+                    ON CONFLICT(device_mac,hour) DO UPDATE SET upload=upload+excluded.upload,download=download+excluded.download''',
+                                 [(mac, hour, up, down) for mac, hour, date, up, down in rows])
+                conn.executemany('''INSERT INTO traffic_daily (device_mac,date,upload,download) VALUES (?,?,?,?)
+                    ON CONFLICT(device_mac,date) DO UPDATE SET upload=upload+excluded.upload,download=download+excluded.download''',
+                                 [(mac, date, up, down) for mac, hour, date, up, down in rows])
+                conn.execute('''UPDATE traffic_periods SET
+                    total_upload=(SELECT COALESCE(SUM(total_upload),0) FROM devices),
+                    total_download=(SELECT COALESCE(SUM(total_download),0) FROM devices) WHERE is_current=1''')
+        finally:
+            conn.close()
+    return traffic_cache.flush(write)
 
 
 def update_current_rates(mac, upload_rate, download_rate):
-    """更新当前速率"""
-    conn = get_db()
-    c = conn.cursor()
-    c.execute("""
-        UPDATE devices SET current_upload_rate=?, current_download_rate=?
-        WHERE mac=?
-    """, (upload_rate, download_rate, mac))
-    conn.commit()
-    conn.close()
+    """Rates belong in RAM; APIs overlay them on persisted device records."""
+    traffic_cache.set_rates(mac, upload_rate, download_rate)
 
 
 def get_all_devices():
@@ -278,7 +266,7 @@ def get_all_devices():
     c.execute("SELECT * FROM devices ORDER BY is_online DESC, last_seen DESC")
     devices = [dict(row) for row in c.fetchall()]
     conn.close()
-    return devices
+    return [traffic_cache.overlay(device) for device in devices]
 
 
 def get_device_by_mac(mac):
@@ -288,7 +276,7 @@ def get_device_by_mac(mac):
     c.execute("SELECT * FROM devices WHERE mac=?", (mac,))
     row = c.fetchone()
     conn.close()
-    return dict(row) if row else None
+    return traffic_cache.overlay(dict(row)) if row else None
 
 
 def get_hourly_traffic(mac, hours=24):
@@ -379,8 +367,8 @@ def get_summary():
     c.execute("SELECT COALESCE(SUM(total_upload),0) as up, COALESCE(SUM(total_download),0) as down FROM devices")
     row = c.fetchone()
 
-    c.execute("SELECT COALESCE(SUM(current_upload_rate),0) as up_rate, COALESCE(SUM(current_download_rate),0) as down_rate FROM devices WHERE is_online=1")
-    rates = c.fetchone()
+    c.execute("SELECT mac,is_online FROM devices WHERE is_online=1")
+    live = [traffic_cache.overlay(dict(device)) for device in c.fetchall()]
 
     conn.close()
     return {
@@ -388,8 +376,8 @@ def get_summary():
         "online_devices": online,
         "total_upload": row['up'],
         "total_download": row['down'],
-        "avg_upload_rate": rates['up_rate'],
-        "avg_download_rate": rates['down_rate'],
+        "avg_upload_rate": sum(device['current_upload_rate'] for device in live),
+        "avg_download_rate": sum(device['current_download_rate'] for device in live),
     }
 
 
@@ -613,11 +601,13 @@ def get_current_period():
         return dict(row)
     return None
 
+@traffic_cache.barrier
 def reset_current_period(period_type='monthly', custom_days=30, max_history=20):
     """重置当前周期（清零设备流量，开始新周期）
     max_history: 最多保留的历史周期数（包括当前周期），超过后自动删除最旧的
     """
     import time
+    flush_traffic()
     conn = get_db()
     c = conn.cursor()
 

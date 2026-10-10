@@ -6,10 +6,10 @@ import subprocess
 import time
 import threading
 import re
-from config import TRAFFIC_CHAIN, TRAFFIC_INTERVAL
+from config import TRAFFIC_CHAIN, TRAFFIC_INTERVAL, TRAFFIC_FLUSH_INTERVAL
 from database import (
     get_all_devices, update_traffic, update_current_rates,
-    record_connection_event, update_period_traffic, check_and_reset_period
+    record_connection_event, flush_traffic, check_and_reset_period
 )
 
 
@@ -155,6 +155,7 @@ class TrafficMonitor(threading.Thread):
         self.running = True
         self.last_counters = {}
         self.last_read_time = time.monotonic()
+        self.last_flush_time = time.monotonic()
         self.monitored_ips = set()
         self.rate_history = {}
         self.max_history = 2
@@ -243,11 +244,12 @@ class TrafficMonitor(threading.Thread):
         self.last_counters = current_counters
         self.last_read_time = now
 
-        # 周期流量统计
-        try:
-            update_period_traffic()
-        except Exception as e:
-            pass
+        # Persist all device and period deltas in one transaction once per minute.
+        if now - self.last_flush_time >= TRAFFIC_FLUSH_INTERVAL:
+            self.last_flush_time = now
+            count = flush_traffic()
+            if count:
+                print(f'[Traffic] 批量保存 {count} 组流量统计')
 
         self.period_check_counter += 1
         if self.period_check_counter >= 1200:
@@ -275,6 +277,7 @@ class TrafficMonitor(threading.Thread):
 
     def stop(self):
         self.running = False
+        flush_traffic()
         run_iptables(["iptables", "-F", TRAFFIC_CHAIN])
         run_iptables(["iptables", "-D", "FORWARD", "-j", TRAFFIC_CHAIN])
         run_iptables(["iptables", "-X", TRAFFIC_CHAIN])

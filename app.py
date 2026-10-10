@@ -7,6 +7,7 @@ import sys
 import time
 import json
 import threading
+import signal
 from datetime import datetime, timedelta
 from flask import Flask, render_template, request, jsonify, send_from_directory
 
@@ -27,6 +28,7 @@ from database import (
 )
 from scanner import Scanner
 from traffic import TrafficMonitor
+from telemetry_logging import configure as configure_telemetry_logging
 from device_manager import (
     block_device, unblock_device, limit_device, unlimit_device,
     init_block_chain, init_tc, get_blocked_devices, get_limited_devices,
@@ -792,6 +794,20 @@ def main():
     print("[Init] 启动流量监控线程...")
     traffic_monitor = TrafficMonitor(interval=3)
     traffic_monitor.start()
+
+    def stop_telemetry(signum, frame):
+        from database import flush_traffic
+        scanner.running = False
+        traffic_monitor.running = False
+        traffic_monitor.join(timeout=5)
+        try:
+            flush_traffic()
+        except Exception as error:
+            print(f'[Shutdown] 保存统计失败: {error}', flush=True)
+        raise SystemExit(0)
+
+    signal.signal(signal.SIGTERM, stop_telemetry)
+    configure_telemetry_logging()
 
     # 初始化设备管理系统
     print("[Init] 初始化设备管理系统...")
