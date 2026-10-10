@@ -1,6 +1,10 @@
 #!/bin/sh
 set -eu
 sysctl -q -w net.ipv4.ip_forward=1
+# Optional receive steering; run again after USB reconnection or route changes.
+if [ -x /usr/local/sbin/netpulse-performance ]; then
+    /usr/local/sbin/netpulse-performance >/dev/null || true
+fi
 # Choose the actual lowest-metric Wi-Fi default route, including fallback.
 uplink=$(ip -j -4 route show default | python3 -c 'import json,sys; r=[x for x in json.load(sys.stdin) if x.get("dev") not in ("eth0","wlan0","lo","tailscale0")]; print(min(r,key=lambda x:x.get("metric",0))["dev"] if r else "")')
 [ -n "$uplink" ] || exit 0
